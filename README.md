@@ -1,5 +1,5 @@
 # 창공설 UFLD - cpu only
-기존의 UFLD 모델이 cpu만 사용하여 실행되도록 코드를 수정함.
+기존의 UFLD 모델이 cpu만 사용하여 Raspberry Pi에서도 실행할 수 있도록 코드를 수정함.
 
 # Demo 
 out.mp4 참고
