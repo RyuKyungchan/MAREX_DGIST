@@ -6,6 +6,10 @@ import tqdm
 import torchvision.transforms as transforms
 from data.dataset import LaneTestDataset
 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def pred2coords(pred, row_anchor, col_anchor, local_width = 1, original_image_width = 1640, original_image_height = 590):
     batch_size, num_grid_row, num_cls_row, num_lane_row = pred['loc_row'].shape
     batch_size, num_grid_col, num_cls_col, num_lane_col = pred['loc_col'].shape
@@ -54,6 +58,8 @@ def pred2coords(pred, row_anchor, col_anchor, local_width = 1, original_image_wi
             coords.append(tmp)
 
     return coords
+
+
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
 
@@ -82,6 +88,7 @@ if __name__ == "__main__":
             compatible_state_dict[k] = v
 
     net.load_state_dict(compatible_state_dict, strict=False)
+    net.to(device)
     net.eval()
 
     img_transforms = transforms.Compose([
@@ -89,6 +96,7 @@ if __name__ == "__main__":
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
+
     if cfg.dataset == 'CULane':
         splits = ['test0_normal.txt', 'test1_crowd.txt', 'test2_hlight.txt', 'test3_shadow.txt', 'test4_noline.txt', 'test5_arrow.txt', 'test6_curve.txt', 'test7_cross.txt', 'test8_night.txt']
         datasets = [LaneTestDataset(cfg.data_root,os.path.join(cfg.data_root, 'list/test_split/'+split),img_transform = img_transforms, crop_size = cfg.train_height) for split in splits]
@@ -99,6 +107,7 @@ if __name__ == "__main__":
         img_w, img_h = 1280, 720
     else:
         raise NotImplementedError
+    
     for split, dataset in zip(splits, datasets):
         loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle = False, num_workers=1)
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -106,7 +115,7 @@ if __name__ == "__main__":
         vout = cv2.VideoWriter(split[:-3]+'avi', fourcc , 30.0, (img_w, img_h))
         for i, data in enumerate(tqdm.tqdm(loader)):
             imgs, names = data
-            imgs = imgs.cuda()
+            imgs = imgs.to(device)
             with torch.no_grad():
                 pred = net(imgs)
 

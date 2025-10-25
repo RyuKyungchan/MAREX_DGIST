@@ -1,9 +1,16 @@
 import os, argparse
-from data.dali_data import TrainCollect
 from utils.dist_utils import get_rank, get_world_size, is_main_process, dist_print, DistSummaryWriter
 from utils.config import Config
 import torch
 import time
+
+try:
+    from utils.dali_data import TrainCollect
+    HAS_DALI = True
+except:
+    HAS_DALI = False
+    TrainCollect = None
+
 
 def str2bool(v):
     if isinstance(v, bool):
