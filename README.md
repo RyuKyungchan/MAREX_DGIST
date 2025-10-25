@@ -1,13 +1,7 @@
-# Ultra-Fast-Lane-Detection-V2
-PyTorch implementation of the paper "[Ultra Fast Deep Lane Detection with Hybrid Anchor Driven Ordinal Classification](https://arxiv.org/abs/2206.07389)".
+# 창공설 UFLD - cpu only
 
-
-![](ufldv2.png "vis")
 
 # Demo 
-<a href="https://youtu.be/VkvpoHlaMe0
-" target="_blank"><img src="http://img.youtube.com/vi/VkvpoHlaMe0/0.jpg" 
-alt="Demo" width="240" height="180" border="10" /></a>
 
 
 # Install
