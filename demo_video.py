@@ -137,6 +137,8 @@ if __name__ == "__main__":
     H  = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    # 원본 프레임 높이
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')        # mp4 코덱(환경에 따라 다를 수 있음)
     vout = cv2.VideoWriter(known_args.out_path, fourcc, fps, (W, H))    # 출력 비디오 스트림 생성
+    # 실시간 미리보기 창 생성 (크기 조절 가능)
+    cv2.namedWindow("UFLD Preview", cv2.WINDOW_NORMAL)
 
     with torch.no_grad():   # 추론 시 그래디언트 비활성화
         while True:
@@ -159,6 +161,11 @@ if __name__ == "__main__":
                     # 차선 포인트를 초록색 점(반지름=5)으로 표시
                     cv2.circle(vis, (x, y), 5, (0,255,0), -1)
             vout.write(vis)   # 프레임 기록
+            # 실시간 미리보기 표시 및 키 입력 처리
+            cv2.imshow("UFLD Preview", vis)
+            if cv2.waitKey(1) & 0xFF in (27, ord('q')):   # ESC(27) 또는 'q' 키로 종료
+                break
 
     cap.release(); vout.release()
+    cv2.destroyAllWindows()
     dist_print(f"Video saved to: {known_args.out_path}")
