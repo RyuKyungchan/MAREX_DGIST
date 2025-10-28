@@ -15,6 +15,7 @@ demo_video.py
 import os, sys, cv2, torch, argparse
 from PIL import Image
 import numpy as np
+import json
 
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
@@ -287,10 +288,7 @@ if __name__ == "__main__":
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0         # FPS가 0/NaN이면 기본 30fps
     W  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))     # 원본 프레임 폭
     H  = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    # 원본 프레임 높이
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')        # mp4 코덱(환경에 따라 다를 수 있음)
-    vout = cv2.VideoWriter(known_args.out_path, fourcc, fps, (W, H))    # 출력 비디오 스트림 생성
-    # 실시간 미리보기 창 생성 (크기 조절 가능)
-    cv2.namedWindow("UFLD Preview", cv2.WINDOW_NORMAL)
+
 
     smooth_coeff_prev = None  # 중심선 temporal EMA용 초기값
 
@@ -315,35 +313,11 @@ if __name__ == "__main__":
             coords = pred2coords(pred, cfg.row_anchor, cfg.col_anchor,
                                  original_image_width=W, original_image_height=H)
             
-            # ----- 4) 차선 & 중심선 그리기 -----
-            vis = frame_bgr.copy()  # 그리기용 캔버스 준비
-
-            # 중심선 계산(좌/우 경계 중점) + 프레임 간 EMA 스무딩
-            ys_c, xs_c, smooth_coeff_prev = compute_centerline_from_lanes(
+            # ----- 4) 중심선 좌표 계산 -----
+            centerline = compute_centerline_from_lanes(
                 coords, cfg.row_anchor, W, H,
-                min_pair_points=8,   # 데이터 품질에 맞게 조정
-                fit_deg=2,           # 2차 다항 피팅(프레임 내 스무딩)
-                smooth_coeff_prev=smooth_coeff_prev,  # 프레임 간 EMA
-                smooth_alpha=0.5
+                min_pair_points=8,  # 필요시 조정
+                fit_deg=0           # 0: 원시 중점 그대로, 1/2: y-다항 피팅(부드럽게)
             )
-
-            # 중심선 그리기
-            draw_polyline(vis, xs_c, ys_c, color=(0,165,255), thickness=4)  # 주황색 중심선
-
-            # 차선 포인트 그리기
-            for lane in coords:
-                for (x, y) in lane:
-                    # 차선 포인트를 초록색 점(반지름=5)으로 표시
-                    cv2.circle(vis, (x, y), 5, (0,255,0), -1)
-            
-            # ----- 5) 출력/미리보기 -----
-            vout.write(vis)   # 프레임 기록
-            # 실시간 미리보기 표시 및 키 입력 처리
-            cv2.imshow("UFLD Preview", vis)
-            if cv2.waitKey(1) & 0xFF in (27, ord('q')):   # ESC(27) 또는 'q' 키로 종료
-                break
-
-    cap.release()
-    vout.release()
-    cv2.destroyAllWindows()
-    dist_print(f"Video saved to: {known_args.out_path}")
+            # 프레임별 JSONL 포맷으로 표준출력
+            print(json.dumps({"centerline": centerline}))
