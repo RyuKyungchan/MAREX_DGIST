@@ -143,14 +143,19 @@ def _lane_x_at_bottom(points, bottom_y):
     return _interp_x_at_y(points, bottom_y)
 
 
-def _pick_left_right(lanes, W, H):
+def _pick_left_right(lanes, W, H, row_anchor=None):
     """
     lanes: pred2coords가 만든 차선별 [(x,y), ...] 리스트들의 리스트
     반환: (left_points, right_points) 또는 (None, None)
     기준: 프레임 하단 y=H-1에서의 x값을 보간해 정렬한 후,
           화면 가운데 W/2를 둘러싼 두 개를 좌/우로 선택.
     """
-    bottom_y = H - 1
+    # 가장 아래 앵커 y (0~1 스케일의 최대값)로 보간하면 앵커 커버리지 밖으로 나가지 않음
+    if row_anchor is not None and len(row_anchor) > 0:
+        bottom_y = int(max(row_anchor) * H)
+    else:
+        bottom_y = H - 1
+
     candidates = []
     for pts in lanes:
         x_at_bottom = _lane_x_at_bottom(pts, bottom_y)
@@ -196,7 +201,7 @@ def compute_centerline_from_lanes(lanes, row_anchor, W, H,
       xs_c : 중심선 x 샘플 (list[float])  - (피팅/스무딩 적용 후)
       coeff: 이번 프레임의 다항 계수(np.ndarray) 또는 None
     """
-    left, right = _pick_left_right(lanes, W, H)
+    left, right = _pick_left_right(lanes, W, H, row_anchor=row_anchor)
     if left is None or right is None:
         return [], [], smooth_coeff_prev  # 한쪽이라도 없으면 빈 값 반환
 
