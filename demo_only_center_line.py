@@ -16,6 +16,7 @@ import os, sys, cv2, torch, argparse
 from PIL import Image
 import numpy as np
 import json
+import time
 
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
@@ -294,8 +295,12 @@ if __name__ == "__main__":
     W  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))     # 원본 프레임 폭
     H  = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))    # 원본 프레임 높이
 
+    # --- 평균 FPS 측정용 누적 변수 ---
+    t_start = time.perf_counter()
+    n_frames = 0
 
     smooth_coeff_prev = None  # 중심선 temporal EMA용 초기값
+
 
     with torch.no_grad():   # 추론 시 그래디언트 비활성화
         while True:
@@ -324,5 +329,15 @@ if __name__ == "__main__":
                 min_pair_points=8,  # 필요시 조정
                 fit_deg=0           # 0: 원시 중점 그대로, 1/2: y-다항 피팅(부드럽게)
             )
+
             # 프레임별 JSONL 포맷으로 표준출력
             print(json.dumps({"centerline": centerline}))
+
+            # 프레임 처리 1건 완료 -> 카운트 증가
+            n_frames += 1
+
+    cap.release()
+
+    t_total = max(time.perf_counter() - t_start, 1e-9)
+    avg_fps = n_frames / t_total
+    dist_print(f"Processed {n_frames} frames in {t_total:.3f}s  -> Avg FPS: {avg_fps:.3f}")
